@@ -1,6 +1,8 @@
 ## How to Publish Website to [GitHub Pages](https://pages.github.com/)
 
-`1`. Add deployment script to `run.js`:
+### Step 1
+
+Add deployment script to `run.js`:
 
 ```js
 tasks.set('publish', () => {
@@ -10,7 +12,7 @@ tasks.set('publish', () => {
   };
   global.DEBUG = process.argv.includes('--debug') || false;
   const spawn = require('child_process').spawn;
-  const opts = { cwd: path.resolve(__dirname, './build'), stdio: ['ignore', 'inherit', 'inherit'] };
+  const opts = { cwd: path.resolve(__dirname, './public'), stdio: ['ignore', 'inherit', 'inherit'] };
   const git = (...args) => new Promise((resolve, reject) => {
     spawn('git', args, opts).on('close', code => {
       if (code === 0) {
@@ -44,7 +46,9 @@ tasks.set('publish', () => {
 });
 ```
 
-`2`. Whenever you need to compile and publish your site to GitHub Pages simply run:
+### Step 2
+
+Whenever you need to compile and publish your site to GitHub Pages simply run:
 
 ```sh
 $ node run publish

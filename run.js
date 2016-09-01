@@ -83,18 +83,19 @@ tasks.set('bundle', () => {
 //
 // Build website into a distributable format
 // -----------------------------------------------------------------------------
-tasks.set('build', () => Promise.resolve()
-  .then(() => run('clean'))
-  .then(() => run('bundle'))
-  .then(() => run('html'))
-  .then(() => run('sitemap'))
-);
+tasks.set('build', () => {
+  global.DEBUG = process.argv.includes('--debug') || false;
+  return Promise.resolve()
+    .then(() => run('clean'))
+    .then(() => run('bundle'))
+    .then(() => run('html'))
+    .then(() => run('sitemap'));
+});
 
 //
 // Build and publish the website
 // -----------------------------------------------------------------------------
 tasks.set('publish', () => {
-  global.DEBUG = process.argv.includes('--debug') || false;
   const firebase = require('firebase-tools');
   return run('build')
     .then(() => firebase.login({ nonInteractive: false }))
@@ -121,7 +122,6 @@ tasks.set('start', () => {
       publicPath: webpackConfig.output.publicPath,
       stats: webpackConfig.stats,
     });
-    const webpackHotMiddleware = require('webpack-hot-middleware')(compiler);
     compiler.plugin('done', stats => {
       // Generate index.html page
       const bundle = stats.compilation.chunks.find(x => x.name === 'main').files[0];
@@ -131,20 +131,17 @@ tasks.set('start', () => {
       fs.writeFileSync('./public/index.html', output, 'utf8');
 
       // Launch Browsersync after the initial bundling is complete
+      // For more information visit https://browsersync.io/docs/options
       if (++count === 1) {
         bs.init({
+          port: process.env.PORT || 3000,
+          ui: { port: Number(process.env.PORT || 3000) + 1 },
           server: {
             baseDir: 'public',
             middleware: [
               webpackDevMiddleware,
-              webpackHotMiddleware,
-              // Serve index.html for all unknown requests
-              (req, res, next) => {
-                if (req.headers.accept && req.headers.accept.startsWith('text/html')) {
-                  req.url = '/index.html'; // eslint-disable-line no-param-reassign
-                }
-                next();
-              },
+              require('webpack-hot-middleware')(compiler),
+              require('connect-history-api-fallback')(),
             ],
           },
         }, resolve);
@@ -154,4 +151,4 @@ tasks.set('start', () => {
 });
 
 // Execute the specified task or default one. E.g.: node run build
-run(process.argv[2] || 'start');
+run(/^\w/.test(process.argv[2] || '') ? process.argv[2] : 'start' /* default */);
